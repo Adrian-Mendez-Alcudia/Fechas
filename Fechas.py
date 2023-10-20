@@ -28,6 +28,14 @@ CREATE TABLE IF NOT EXISTS fechas (
 """)
 conn.commit()
 
+# Función para registrar un nuevo usuario
+def registrar_usuario():
+    username = entry_registro_usuario.get()
+    password = entry_registro_contrasena.get()
+    cursor.execute("INSERT INTO usuarios (username, password) VALUES (?, ?)", (username, password))
+    conn.commit()
+    messagebox.showinfo("Éxito", "Usuario registrado con éxito")
+
 # Función para iniciar sesión
 def iniciar_sesion():
     username = entry_inicio_usuario.get()
@@ -49,6 +57,7 @@ def crear_ventana_principal(user_id):
         cursor.execute("INSERT INTO fechas (user_id, fecha, descripcion) VALUES (?, ?, ?)", (user_id, fecha, descripcion))
         conn.commit()
         messagebox.showinfo("Éxito", "Fecha agregada con éxito")
+        cargar_fechas()
 
     def notificar_fechas_importantes():
         hoy = datetime.now().strftime("%Y-%m-%d")
@@ -57,6 +66,34 @@ def crear_ventana_principal(user_id):
         if fecha:
             mensaje = f"Hoy es tu día importante, {fecha[1]}. ¡No se te pase, chicuelo!"
             messagebox.showinfo("Recordatorio", mensaje)
+
+    def cargar_fechas():
+        cursor.execute("SELECT id, fecha, descripcion FROM fechas WHERE user_id = ?", (user_id,))
+        fechas = cursor.fetchall()
+        listbox_fechas.delete(0, tk.END)
+        for fecha in fechas:
+            listbox_fechas.insert(tk.END, f"{fecha[1]} - {fecha[2]}")
+
+    def editar_fecha():
+        seleccion = listbox_fechas.curselection()
+        if seleccion:
+            id_fecha = listbox_fechas.get(seleccion[0]).split(" - ")[0]
+            nueva_descripcion = entry_nueva_descripcion.get()
+            cursor.execute("UPDATE fechas SET descripcion = ? WHERE id = ?", (nueva_descripcion, id_fecha))
+            conn.commit()
+            cargar_fechas()
+            entry_nueva_descripcion.delete(0, tk.END)
+            messagebox.showinfo("Éxito", "Fecha editada con éxito")
+
+    def borrar_fecha():
+        seleccion = listbox_fechas.curselection()
+        if seleccion:
+            id_fecha = listbox_fechas.get(seleccion[0]).split(" - ")[0]
+            cursor.execute("DELETE FROM fechas WHERE id = ?", (id_fecha,))
+            conn.commit()
+            cargar_fechas()
+            entry_nueva_descripcion.delete(0, tk.END)
+            messagebox.showinfo("Éxito", "Fecha eliminada con éxito")
 
     # Crear la ventana principal
     root2 = tk.Tk()
@@ -75,6 +112,24 @@ def crear_ventana_principal(user_id):
     entry_descripcion.pack()
     button_agregar.pack()
 
+    # Lista de fechas
+    listbox_fechas = tk.Listbox(root2)
+    listbox_fechas.pack()
+
+    # Campos y botones para editar y borrar fechas
+    label_nueva_descripcion = tk.Label(root2, text="Nueva Descripción:")
+    entry_nueva_descripcion = tk.Entry(root2)
+    button_editar = tk.Button(root2, text="Editar Fecha", command=editar_fecha)
+    button_borrar = tk.Button(root2, text="Borrar Fecha", command=borrar_fecha)
+
+    label_nueva_descripcion.pack()
+    entry_nueva_descripcion.pack()
+    button_editar.pack()
+    button_borrar.pack()
+
+    # Cargar fechas existentes
+    cargar_fechas()
+
     # Notificar fechas importantes al inicio de la aplicación
     notificar_fechas_importantes()
 
@@ -83,12 +138,25 @@ def crear_ventana_principal(user_id):
 
 # Crear la ventana de inicio de sesión
 root = tk.Tk()
-root.title("Iniciar Sesión")
+root.title("Iniciar Sesión o Registrar Usuario")
+
+# Etiquetas y campos para registro
+label_registro_usuario = tk.Label(root, text="Usuario (Registro):")
+entry_registro_usuario = tk.Entry(root)
+label_registro_contrasena = tk.Label(root, text="Contraseña (Registro):")
+entry_registro_contrasena = tk.Entry(root, show="*")
+button_registrar = tk.Button(root, text="Registrar Usuario", command=registrar_usuario)
+
+label_registro_usuario.pack()
+entry_registro_usuario.pack()
+label_registro_contrasena.pack()
+entry_registro_contrasena.pack()
+button_registrar.pack()
 
 # Etiquetas y campos para inicio de sesión
-label_inicio_usuario = tk.Label(root, text="Usuario:")
+label_inicio_usuario = tk.Label(root, text="Usuario (Inicio de Sesión):")
 entry_inicio_usuario = tk.Entry(root)
-label_inicio_contrasena = tk.Label(root, text="Contraseña:")
+label_inicio_contrasena = tk.Label(root, text="Contraseña (Inicio de Sesión):")
 entry_inicio_contrasena = tk.Entry(root, show="*")
 button_iniciar_sesion = tk.Button(root, text="Iniciar Sesión", command=iniciar_sesion)
 
